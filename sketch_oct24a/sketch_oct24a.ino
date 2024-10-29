@@ -1,86 +1,103 @@
-#include <Wire.h>              // Biblioteca para comunicação I2C, necessária para o display OLED.
-#include <Adafruit_GFX.h>      // Biblioteca para gráficos em displays, usada para criar textos e desenhos.
-#include <Adafruit_SSD1306.h>  // Biblioteca para controle do display OLED SSD1306, fornecendo métodos específicos.
-#include <WiFi.h>              // Biblioteca para estabelecer a conexão Wi-Fi com redes locais.
-#include <WebServer.h>         // Biblioteca para criar e gerenciar um servidor HTTP.
-#include <PubSubClient.h>      // Biblioteca para comunicação com o broker MQTT, essencial para a transmissão de dados.
+#include <Wire.h>              // Biblioteca para comunicação I2C.
+#include <Adafruit_GFX.h>      // Biblioteca para gráficos em displays.
+#include <Adafruit_SSD1306.h>  // Biblioteca para controlar o display OLED SSD1306.
+#include <WiFi.h>              // Biblioteca para conexão Wi-Fi.
+#include <WebServer.h>         // Biblioteca para criar um servidor HTTP.
+#include <PubSubClient.h>      // Biblioteca para comunicação com o broker MQTT.
 
-#define SCREEN_WIDTH 128       // Define a largura do display OLED em pixels.
-#define SCREEN_HEIGHT 64       // Define a altura do display OLED em pixels.
-#define OLED_RESET -1          // Define o pino de reset do OLED, -1 indica que o pino não será usado no ESP32.
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET); // Inicializa o display com os parâmetros definidos.
+// Define as dimensões do display OLED
+#define SCREEN_WIDTH 128       // Largura do display em pixels
+#define SCREEN_HEIGHT 64       // Altura do display em pixels
+#define OLED_RESET -1          // Pino de reset (não necessário para o ESP32)
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);  // Inicializa o objeto display
 
-const int analogIn = 36;       // Define o pino VP (GPIO36) como entrada para o sensor ACS712.
-int mVperAmp = 66;             // Sensibilidade do sensor ACS712 em mV (66 para o modelo de 30A).
-int ACSoffset = 2500;          // Offset padrão do sensor em mV, para calibração.
-double Voltage = 0;            // Variável para armazenar a voltagem lida.
-double Amps = 0;               // Variável para armazenar a corrente calculada em amperes.
+const int analogIn = 36;       // Pino de entrada analógica VP (GPIO36) para leitura do sensor de corrente ACS712
+const int pinoSaida = 5;       // Pino digital 5, que será acionado com base na corrente
+int mVperAmp = 66;             // Sensibilidade do sensor ACS712 em mV/A para o modelo de 30A
+int ACSoffset = 2500;          // Offset do sensor ACS712 em mV
+double Voltage = 0;            // Variável para armazenar a tensão medida
+double Amps = 0;               // Variável para armazenar a corrente medida em amperes
 
-const char* ssid = "Altatelas2G";            // Nome da rede Wi-Fi.
-const char* password = "alta972600";         // Senha da rede Wi-Fi.
-const char* mqttServer = "broker.mqtt-dashboard.com"; // Endereço do broker MQTT.
-const int mqttPort = 1883;                   // Porta padrão para conexão com o broker MQTT.
+// Credenciais da rede Wi-Fi
+const char* ssid = "Altatelas2G";      // Nome da rede Wi-Fi
+const char* password = "alta972600";   // Senha da rede Wi-Fi
+const char* mqttServer = "192.168.18.82"; // Endereço IP do broker MQTT
+const int mqttPort = 1883;             // Porta do broker MQTT
 
-String ipAddress;                            // Armazena o endereço IP obtido ao conectar ao Wi-Fi.
-WiFiClient wifiClient;                       // Instancia o cliente Wi-Fi para o ESP32.
-PubSubClient mqttClient(wifiClient);         // Cliente MQTT, configurado com o cliente Wi-Fi.
-WebServer server(80);                        // Inicializa o servidor HTTP na porta 80.
+String ipAddress;                      // Variável para armazenar o IP do ESP32 na rede
+WiFiClient wifiClient;                 // Cliente Wi-Fi para conexão com o broker MQTT
+PubSubClient mqttClient(wifiClient);   // Cliente MQTT configurado com o cliente Wi-Fi
+WebServer server(80);                  // Cria um servidor HTTP na porta 80
 
 void setup() {
-  Serial.begin(115200);                      // Inicia a comunicação serial a 115200 bps.
-  Serial.println("Inicializando...");        // Mensagem de inicialização no monitor serial.
+  Serial.begin(115200);                     // Inicializa a comunicação serial para depuração
+  Serial.println("Inicializando...");
 
-  // Inicialização do display OLED
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { 
-    Serial.println("Falha ao inicializar o display OLED"); // Mensagem de erro se o display não iniciar.
-    while (true);                                          // Loop infinito se houver erro.
+  // Inicializa o display OLED
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {  // Verifica se o display inicializou corretamente
+    Serial.println("Falha ao inicializar o display OLED");
+    while (true);                                    // Se falhar, fica em loop infinito
   }
-  display.clearDisplay();                                  // Limpa o display.
-  display.setTextColor(SSD1306_WHITE);                     // Define a cor do texto como branca.
+  display.clearDisplay();                            // Limpa o display
+  display.setTextColor(SSD1306_WHITE);               // Define a cor do texto como branco
 
-  // Conexão Wi-Fi
-  WiFi.begin(ssid, password);                              // Conecta ao Wi-Fi usando o SSID e a senha definidos.
-  while (WiFi.status() != WL_CONNECTED) {                  // Loop até conectar ao Wi-Fi.
-    delay(1000);                                           // Atraso de 1 segundo entre tentativas.
-    Serial.println("Conectando ao WiFi...");               // Mensagem de tentativa de conexão.
+  // Configura o pino 5 como saída
+  pinMode(pinoSaida, OUTPUT);                        // Define o pino de saída para controle do relé
+  digitalWrite(pinoSaida, LOW);                      // Inicializa o pino desligado
+
+  // Conexão à rede Wi-Fi
+  WiFi.begin(ssid, password);                        // Inicia a conexão com a rede Wi-Fi
+  while (WiFi.status() != WL_CONNECTED) {            // Aguarda até estar conectado
+    delay(1000);                                     // Aguarda 1 segundo
+    Serial.println("Conectando ao WiFi...");
   }
-  ipAddress = WiFi.localIP().toString();                   // Armazena o IP obtido na variável.
-  Serial.print("Conectado ao WiFi com IP: ");              // Exibe o IP no monitor serial.
+  ipAddress = WiFi.localIP().toString();             // Obtém o IP do ESP32
+  Serial.print("Conectado ao WiFi com IP: ");
   Serial.println(ipAddress);
 
   // Configuração do servidor HTTP
-  server.on("/", handleRoot);                              // Define a função handleRoot para responder à rota principal.
-  server.begin();                                          // Inicia o servidor.
+  server.on("/", handleRoot);                        // Configura o manipulador de requisições para a página raiz
+  server.begin();                                    // Inicia o servidor
 
   // Configuração do cliente MQTT
-  mqttClient.setServer(mqttServer, mqttPort);              // Configura o endereço e porta do broker MQTT.
+  mqttClient.setServer(mqttServer, mqttPort);        // Define o endereço e a porta do broker MQTT
 }
 
 void loop() {
-  // Processa clientes HTTP
-  server.handleClient();                                   // Trata solicitações HTTP recebidas.
+  server.handleClient();                             // Processa as requisições do cliente HTTP
 
-  // Calcula corrente e atualiza o display
-  Calcula_corrente();                                      // Função para cálculo da corrente.
-  exibeDisplay();                                          // Exibe a corrente no display OLED.
+  // Calcula a corrente e exibe no display
+  Calcula_corrente();                                // Função que calcula a corrente
+  exibeDisplay();                                    // Função que exibe a corrente no display OLED
 
-  // Verifica conexão MQTT
-  if (!mqttClient.connected()) {                           // Verifica se há conexão com o broker MQTT.
-    reconnectMQTT();                                       // Se não estiver conectado, tenta reconectar.
+  // Verifica se o cliente MQTT está conectado
+  if (!mqttClient.connected()) {
+    reconnectMQTT();                                 // Se não estiver conectado, tenta reconectar ao broker MQTT
   }
-  mqttClient.loop();                                       // Mantém a conexão MQTT ativa.
+  mqttClient.loop();                                 // Mantém a conexão com o broker ativa
 
   // Publica corrente e potência
-  String correnteStr = String(Amps, 3);                    // Converte a corrente para string com 3 casas decimais.
-  String potenciaStr = String(Amps * 127);                 // Calcula a potência aparente com 127V e converte para string.
-  mqttClient.publish("casa/monitoramento/corrente", correnteStr.c_str()); // Publica a corrente no tópico MQTT.
-  mqttClient.publish("casa/monitoramento/potencia", potenciaStr.c_str()); // Publica a potência no tópico MQTT.
+  String ipAddressStr = String(ipAddress);           // Converte o IP para uma string
+  String correnteStr = String(Amps, 3);              // Converte a corrente para string com 3 casas decimais
+  String potenciaStr = String(Amps * 127);           // Calcula a potência e converte para string, assumindo 127V
 
-  delay(5000);                                             // Atraso de 5 segundos entre leituras e publicações.
+  // Publica os dados nos tópicos MQTT
+  mqttClient.publish("Casa/Monitoramento_Energia/corrente", correnteStr.c_str());
+  mqttClient.publish("Casa/Monitoramento_Energia/potencia", potenciaStr.c_str());
+  mqttClient.publish("Casa/Monitoramento_Energia/Ipv4 rede local do esp32", ipAddressStr.c_str());
+
+  // Publica o estado do relé com base na corrente
+  if (Amps == 0) {
+    mqttClient.publish("Casa/Monitoramento_Energia/rele", "Desligado"); // Publica que o relé está desligado
+  } else {
+    mqttClient.publish("Casa/Monitoramento_Energia/rele", "Ligado");    // Publica que o relé está ligado
+  }
+
+  delay(5000);                                       // Intervalo de 5 segundos entre leituras e publicações
 }
 
 void handleRoot() {
-  // Função de resposta ao cliente HTTP com informações de corrente
+  // Função que gera uma página HTML com as informações de corrente e potência
   String html = "<html><head><title>Monitor de Corrente</title>";
   html += "<style>body{font-family: Arial; text-align: center;}</style></head><body>";
   html += "<h1>Monitor de Corrente</h1>";
@@ -88,45 +105,52 @@ void handleRoot() {
   html += "<p><strong>Potência Aparente:</strong> " + String(Amps * 127) + " WATTS</p>";
   html += "<p><strong>Endereço IP:</strong> " + ipAddress + "</p>";
   html += "</body></html>";
-  server.send(200, "text/html", html);                     // Envia a resposta em HTML para o cliente.
+  server.send(200, "text/html", html);               // Envia o HTML como resposta ao cliente
 }
 
 void Calcula_corrente() {
-  int RawValue = analogRead(analogIn);                     // Lê o valor do pino analógico VP.
-  Voltage = (RawValue / 4095.0) * 3300;                    // Converte o valor lido para mV.
-  Amps = (((Voltage - ACSoffset) / mVperAmp) / 10 + 0.950); // Calcula a corrente em A com ajuste.
+  int RawValue = analogRead(analogIn);               // Lê o valor do pino analógico
+  Voltage = (RawValue / 4095.0) * 3300;              // Converte o valor bruto para milivolts
+  Amps = (((Voltage - ACSoffset) / mVperAmp) / 10 + 0.850); // Calcula a corrente em amperes
 
-  // Ajuste para mostrar apenas valores positivos
-  if (Amps < 0) {                                          // Se a corrente for negativa,
-    Amps = 0;                                              // define como zero para evitar valores negativos.
+  // Ajuste para valores negativos
+  if (Amps < 0) {
+    Amps = 0;
   }
 
-  Serial.print("Corrente (A): ");                          // Exibe a corrente no monitor serial.
-  Serial.println(Amps, 3);
+  // Controla o estado do relé com base na corrente medida
+  if (Amps < 0.100) {                                // Se corrente for menor que 0.1A
+    digitalWrite(pinoSaida, HIGH);                   // Liga o relé
+  } else {
+    digitalWrite(pinoSaida, LOW);                    // Desliga o relé
+  }
+
+  Serial.print("Corrente (A): ");
+  Serial.println(Amps, 3);                           // Exibe a corrente no monitor serial
 }
 
 void exibeDisplay() {
-  // Exibe os dados no display OLED
-  display.clearDisplay();                                  // Limpa o display antes de escrever novos dados.
-  display.setTextSize(1);                                  // Define o tamanho do texto.
-  display.setCursor(20, 0);                                // Define a posição do cursor no display.
-  display.print("Corrente (A)");                           // Exibe a legenda.
-  display.setTextSize(2);                                  // Aumenta o tamanho do texto para o valor da corrente.
-  display.setCursor(20, 30);                               // Posição do valor da corrente.
-  display.print(Amps, 3);                                  // Exibe o valor da corrente com 3 casas decimais.
-  display.display();                                       // Atualiza o display com as informações.
+  // Função que exibe os dados no display OLED
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(20, 0);
+  display.print("Corrente (A)");
+  display.setTextSize(2);
+  display.setCursor(20, 30);
+  display.print(Amps, 3);                            // Mostra a corrente com 3 casas decimais
+  display.display();
 }
 
 void reconnectMQTT() {
-  while (!mqttClient.connected()) {                        // Enquanto não estiver conectado ao MQTT,
-    Serial.print("Tentando conectar ao MQTT...");          // Exibe mensagem de tentativa de conexão.
-    if (mqttClient.connect("ESP32Client")) {               // Tenta conectar ao broker com o ID "ESP32Client".
-      Serial.println("conectado");                         // Exibe confirmação de conexão.
+  while (!mqttClient.connected()) {                  // Tenta reconectar ao broker MQTT
+    Serial.print("Tentando conectar ao MQTT...");
+    if (mqttClient.connect("ESP32Client")) {         // Conecta usando o nome "ESP32Client"
+      Serial.println("conectado");
     } else {
-      Serial.print("Falha, rc=");                          // Exibe mensagem de falha de conexão.
-      Serial.print(mqttClient.state());                    // Exibe o estado de erro do cliente MQTT.
+      Serial.print("Falha, rc=");
+      Serial.print(mqttClient.state());
       Serial.println(" Tentando novamente em 2 segundos");
-      delay(2000);                                         // Espera 2 segundos antes de tentar novamente.
+      delay(2000);                                   // Espera 2 segundos antes de tentar novamente
     }
   }
 }
