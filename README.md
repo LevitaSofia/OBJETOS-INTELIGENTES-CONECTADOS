@@ -89,9 +89,5 @@ Exemplo de Publicação MQTT
 -Tópico do Estado do Relé: Casa/Monitoramento_Energia/rele
 
 
-### Explicação:
-- A estrutura centraliza o conteúdo para uma visualização melhorada.
-- Use placeholders para os links e detalhes que podem ser personalizados.
-- Inclui explicações detalhadas e um exemplo de código para fácil compreensão.
 
 
