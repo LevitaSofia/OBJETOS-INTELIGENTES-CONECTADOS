@@ -1,5 +1,7 @@
 <p align="center">
-  <a href="https://www.mackenzie.br/" target="blank"><img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" /></a>
+  <a href="https://www.mackenzie.br/" target="_blank">
+    <img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" />
+  </a>
 </p>
 
 <div align="center">
@@ -11,6 +13,7 @@
 <p>Este projeto foi desenvolvido para monitorar o consumo de energia em tempo real utilizando o microcontrolador ESP32 junto com um sensor de corrente ACS712, um display OLED SSD1306 e comunicação com um broker MQTT. O sistema apresenta os dados de corrente e potência em um servidor web local, publica os valores em tópicos MQTT e controla um relé com base na corrente medida.</p>
 
 </div>
+
 
 ## Funcionalidades
 
