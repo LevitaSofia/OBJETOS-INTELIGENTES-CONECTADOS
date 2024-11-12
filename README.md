@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://www.mackenzie.br/" target="_blank">
-    <img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" />
+    <a href="https://www.mackenzie.br/" target="blank"><img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" /></a>
   </a>
 </p>
 
