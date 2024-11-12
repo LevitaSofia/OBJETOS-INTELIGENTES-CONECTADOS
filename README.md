@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./logo.jpeg" alt="Mack" width="500" />
+  <img src="./mac.jpg" alt="Mack" width="500" />
 </p>
 
 <div align="center" >
