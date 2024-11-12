@@ -1,9 +1,9 @@
-<img 
-  title="Instituto Presbiteriano Mackenzie" 
-  alt="Instituto Presbiteriano Mackenzie" 
-  src="./img/logo.jpeg"
-  width="200"
-/>
+<p align="center">
+  <a href="https://www.mackenzie.br/" target="blank"><img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" /></a>
+</p>
+
+<div align="center" >
+
 
 
 <h1>Monitoramento de Energia Residencial com ESP32</h1>
