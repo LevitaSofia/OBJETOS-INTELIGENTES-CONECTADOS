@@ -1,8 +1,10 @@
 <p align="center">
-  <a href="https://www.mackenzie.br/" target="blank"><img src="./mackenzie-logo.png" width="200" alt="Mackenzie Logo" /></a>
+  <img src="./logo.jpeg" alt="Mack" width="500" />
 </p>
 
 <div align="center" >
+
+
 
 
 
@@ -16,6 +18,10 @@
 
 
 ## Funcionalidades
+<p align="center">
+  <img src="./esp.jpeg" alt="esp32" width="500" />
+</p>
+
 
 - **Conexão Wi-Fi**: O ESP32 conecta-se à rede Wi-Fi local para hospedar um servidor HTTP e se comunicar com um broker MQTT.
 - **Monitoramento de Corrente**: Leitura da corrente elétrica em um dispositivo utilizando o sensor ACS712 e exibição dos valores em um display OLED.
