@@ -20,9 +20,9 @@ double Voltage = 0;            // Variável para armazenar a tensão medida no p
 double Amps = 0;               // Variável para armazenar a corrente medida, em amperes.
 
 // Credenciais da rede Wi-Fi (nome e senha).
-const char* ssid = "Altatelas2G";      // Nome (SSID) da rede Wi-Fi à qual o ESP32 se conectará.
-const char* password = "alta972600";   // Senha da rede Wi-Fi.
-const char* mqttServer = "192.168.18.82"; // Endereço IP do broker MQTT para conexão.
+const char* ssid = "Sua rede";      // Nome (SSID) da rede Wi-Fi à qual o ESP32 se conectará.
+const char* password = "Sua senha";   // Senha da rede Wi-Fi.
+const char* mqttServer = "IP servidor MQTT"; // Endereço IP do broker MQTT para conexão.
 const int mqttPort = 1883;             // Porta usada pelo broker MQTT (1883 é a porta padrão).
 
 String ipAddress;                      // Variável para armazenar o endereço IP do ESP32 após conexão à rede.
